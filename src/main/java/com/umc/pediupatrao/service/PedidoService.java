@@ -4,10 +4,12 @@ import com.umc.pediupatrao.dto.CancelamentoRequest;
 import com.umc.pediupatrao.dto.DescontoRequest;
 import com.umc.pediupatrao.dto.ItemPedidoRequest;
 import com.umc.pediupatrao.dto.NovoPedidoRequest;
+import com.umc.pediupatrao.entity.AlteracaoCampo;
 import com.umc.pediupatrao.entity.ItemPedido;
 import com.umc.pediupatrao.entity.Pedido;
 import com.umc.pediupatrao.entity.Produto;
 import com.umc.pediupatrao.entity.StatusPedido;
+import com.umc.pediupatrao.entity.TipoOperacaoAuditoria;
 import com.umc.pediupatrao.entity.Usuario;
 import com.umc.pediupatrao.repository.ClienteRepository;
 import com.umc.pediupatrao.repository.PedidoRepository;
@@ -48,6 +50,9 @@ public class PedidoService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    private AuditoriaService auditoriaService;
+
     public Pedido criarPedido(NovoPedidoRequest request, String usernameResponsavel) {
         if (request.getClienteId() == null || !clienteRepository.existsById(request.getClienteId())) {
             throw new IllegalArgumentException("Cliente não encontrado.");
@@ -72,7 +77,20 @@ public class PedidoService {
         pedido.setResponsavelRegistroUsername(responsavel.getUsername());
         pedido.setDataHoraEntrada(LocalDateTime.now());
 
-        return pedidoRepository.save(pedido);
+        Pedido salvo = pedidoRepository.save(pedido);
+
+        String resumoItens = itens.stream()
+                .map(i -> i.getQuantidade() + "x " + i.getNomeProduto())
+                .reduce((a, b) -> a + ", " + b).orElse("");
+        auditoriaService.registrar(usernameResponsavel, TipoOperacaoAuditoria.CRIACAO_PEDIDO, "Pedido", salvo.getId(),
+                List.of(
+                        new AlteracaoCampo("clienteId", null, salvo.getClienteId()),
+                        new AlteracaoCampo("itens", null, resumoItens),
+                        new AlteracaoCampo("valorTotal", null, String.valueOf(salvo.getValorTotal())),
+                        new AlteracaoCampo("status", null, salvo.getStatus().name())
+                ), null);
+
+        return salvo;
     }
 
     private List<ItemPedido> montarItens(List<ItemPedidoRequest> itensRequest) {
@@ -126,6 +144,7 @@ public class PedidoService {
                     "Transição inválida: de " + pedido.getStatus() + " só é permitido ir para " + statusEsperado + ".");
         }
 
+        StatusPedido statusAnterior = pedido.getStatus();
         pedido.setStatus(novoStatus);
 
         if (novoStatus == StatusPedido.SAIU_PARA_ENTREGA_RETIRADO) {
@@ -136,7 +155,13 @@ public class PedidoService {
             pedido.setDataHoraSaida(LocalDateTime.now());
         }
 
-        return pedidoRepository.save(pedido);
+        Pedido salvo = pedidoRepository.save(pedido);
+
+        auditoriaService.registrar(usernameResponsavel, TipoOperacaoAuditoria.MUDANCA_STATUS_PEDIDO, "Pedido",
+                salvo.getId(),
+                List.of(new AlteracaoCampo("status", statusAnterior.name(), novoStatus.name())), null);
+
+        return salvo;
     }
 
     // RF04 - Cancelamento: exclusivo do GERENTE (garantido pelo @PreAuthorize no
@@ -152,11 +177,18 @@ public class PedidoService {
 
         validarPodeSerAlterado(pedido);
 
+        StatusPedido statusAnterior = pedido.getStatus();
         pedido.setStatus(StatusPedido.CANCELADO);
         pedido.setJustificativaCancelamento(request.getJustificativa());
 
-        // TODO (RF05): registrar evento de auditoria (cancelamento) com usuario/perfil/data/justificativa
-        return pedidoRepository.save(pedido);
+        Pedido salvo = pedidoRepository.save(pedido);
+
+        auditoriaService.registrar(usernameResponsavel, TipoOperacaoAuditoria.CANCELAMENTO_PEDIDO, "Pedido",
+                salvo.getId(),
+                List.of(new AlteracaoCampo("status", statusAnterior.name(), "CANCELADO")),
+                request.getJustificativa());
+
+        return salvo;
     }
 
     // RF04 - Desconto: exclusivo do GERENTE, percentual limitado a 20%,
@@ -171,12 +203,23 @@ public class PedidoService {
 
         validarPodeSerAlterado(pedido);
 
+        double descontoAnterior = pedido.getDesconto();
+        double valorAnterior = pedido.getValorTotal();
+
         double valorBruto = pedido.getItens().stream().mapToDouble(ItemPedido::getSubtotal).sum();
         pedido.setDesconto(request.getPercentual());
         pedido.setValorTotal(valorBruto * (1 - request.getPercentual() / 100));
 
-        // TODO (RF05): registrar evento de auditoria (desconto) com usuario/perfil/data/valores anterior e novo
-        return pedidoRepository.save(pedido);
+        Pedido salvo = pedidoRepository.save(pedido);
+
+        auditoriaService.registrar(usernameResponsavel, TipoOperacaoAuditoria.DESCONTO_PEDIDO, "Pedido",
+                salvo.getId(),
+                List.of(
+                        new AlteracaoCampo("desconto", String.valueOf(descontoAnterior), String.valueOf(salvo.getDesconto())),
+                        new AlteracaoCampo("valorTotal", String.valueOf(valorAnterior), String.valueOf(salvo.getValorTotal()))
+                ), null);
+
+        return salvo;
     }
 
     private void validarPodeSerAlterado(Pedido pedido) {

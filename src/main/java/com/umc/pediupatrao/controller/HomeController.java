@@ -5,7 +5,9 @@ import org.slf4j.LoggerFactory;
 import com.umc.pediupatrao.entity.Cliente;
 import com.umc.pediupatrao.entity.Pedido;
 import com.umc.pediupatrao.entity.Produto;
+import com.umc.pediupatrao.entity.RegistroAuditoria;
 import com.umc.pediupatrao.entity.Usuario;
+import com.umc.pediupatrao.service.AuditoriaService;
 import com.umc.pediupatrao.service.ClienteService;
 import com.umc.pediupatrao.service.PedidoService;
 import com.umc.pediupatrao.service.ProdutoService;
@@ -38,6 +40,9 @@ public class HomeController {
 
     @Autowired
     private UsuarioService usuarioService;
+
+    @Autowired
+    private AuditoriaService auditoriaService;
 
     @GetMapping("/login")
     public String login() {
@@ -179,8 +184,8 @@ public class HomeController {
 
     @PostMapping("/clientes/salvar")
     public String salvarCliente(@ModelAttribute Cliente cliente,
-            RedirectAttributes redirectAttributes) {
-        clienteService.salvar(cliente);
+            RedirectAttributes redirectAttributes, Authentication authentication) {
+        clienteService.salvar(cliente, authentication.getName());
         redirectAttributes.addFlashAttribute("sucesso", "Cliente criado com sucesso!");
         return "redirect:/clientes";
     }
@@ -205,11 +210,23 @@ public class HomeController {
     @PostMapping("/clientes/editar/{id}")
     public String atualizarCliente(@PathVariable String id,
             @ModelAttribute Cliente cliente,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, Authentication authentication) {
         cliente.setId(id);
-        clienteService.salvar(cliente);
+        clienteService.salvar(cliente, authentication.getName());
         redirectAttributes.addFlashAttribute("sucesso", "Cliente atualizado com sucesso!");
         return "redirect:/clientes";
+    }
+
+    // ========================
+    // AUDITORIA (somente ADMIN/GERENTE)
+    // ========================
+    @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
+    @GetMapping("/auditoria")
+    public String auditoria(Model model) {
+        List<RegistroAuditoria> registros = auditoriaService.listarTodos();
+        model.addAttribute("registros", registros);
+        model.addAttribute("content", "auditoria :: content");
+        return "layout";
     }
 
     // ========================
