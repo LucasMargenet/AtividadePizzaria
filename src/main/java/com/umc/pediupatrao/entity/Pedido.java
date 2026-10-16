@@ -1,19 +1,27 @@
 package com.umc.pediupatrao.entity;
 
-import jakarta.persistence.Entity;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "pedidos")
-@Entity
 public class Pedido {
     @Id
     private String id;
     private String clienteId;
-    private String tipoPizza;
+    private List<ItemPedido> itens = new ArrayList<>();
     private String status;
-    private int quantidade;
-    private String sabor;
+
+    // Desconto percentual (0-20), aplicado exclusivamente pelo GERENTE (RF04)
+    private double desconto;
+    // Sempre calculado no servidor a partir dos itens e do desconto autorizado
+    private double valorTotal;
+
+    private String responsavelRegistroId;
+    private String responsavelRegistroUsername;
+    private LocalDateTime dataHoraEntrada;
 
     public String getId() {
         return id;
@@ -31,12 +39,12 @@ public class Pedido {
         this.clienteId = clienteId;
     }
 
-    public String getTipoPizza() {
-        return tipoPizza;
+    public List<ItemPedido> getItens() {
+        return itens;
     }
 
-    public void setTipoPizza(String tipoPizza) {
-        this.tipoPizza = tipoPizza;
+    public void setItens(List<ItemPedido> itens) {
+        this.itens = itens;
     }
 
     public String getStatus() {
@@ -47,21 +55,43 @@ public class Pedido {
         this.status = status;
     }
 
-    public int getQuantidade() {
-        return quantidade;
+    public double getDesconto() {
+        return desconto;
     }
 
-    public void setQuantidade(int quantidade) {
-        this.quantidade = quantidade;
+    public void setDesconto(double desconto) {
+        this.desconto = desconto;
     }
 
-    public String getSabor() {
-        return sabor;
+    public double getValorTotal() {
+        return valorTotal;
     }
 
-    public void setSabor(String sabor) {
-        this.sabor = sabor;
+    public void setValorTotal(double valorTotal) {
+        this.valorTotal = valorTotal;
     }
-    
-    
+
+    public String getResponsavelRegistroId() {
+        return responsavelRegistroId;
+    }
+
+    public void setResponsavelRegistroId(String responsavelRegistroId) {
+        this.responsavelRegistroId = responsavelRegistroId;
+    }
+
+    public String getResponsavelRegistroUsername() {
+        return responsavelRegistroUsername;
+    }
+
+    public void setResponsavelRegistroUsername(String responsavelRegistroUsername) {
+        this.responsavelRegistroUsername = responsavelRegistroUsername;
+    }
+
+    public LocalDateTime getDataHoraEntrada() {
+        return dataHoraEntrada;
+    }
+
+    public void setDataHoraEntrada(LocalDateTime dataHoraEntrada) {
+        this.dataHoraEntrada = dataHoraEntrada;
+    }
 }
