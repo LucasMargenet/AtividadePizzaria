@@ -60,7 +60,7 @@
                             </div>
                         </td>
                         <td>
-                            <span th:switch="${usuario.role}">
+                            <span th:switch="${usuario.role.name()}">
                                 <span th:case="'ADMIN'" class="badge bg-danger">ADMIN</span>
                                 <span th:case="'GERENTE'" class="badge bg-warning text-dark">GERENTE</span>
                                 <span th:case="*" class="badge bg-secondary" th:text="${usuario.role}"></span>

@@ -68,24 +68,40 @@
                         <td th:text="${'R$ ' + #numbers.formatDecimal(pedido.valorTotal, 1, 2)}"></td>
                         <td th:text="${pedido.responsavelRegistroUsername}"></td>
                         <td th:text="${pedido.dataHoraEntrada != null} ? ${#temporals.format(pedido.dataHoraEntrada, 'dd/MM/yyyy HH:mm')} : '-'"></td>
-                        <td>
+                        <td th:with="statusNome=${pedido.status.name()}">
                             <span class="badge"
-                                  th:classappend="${pedido.status == 'FINALIZADO'} ? 'bg-success' :
-                                                  (${pedido.status == 'CANCELADO'} ? 'bg-danger' :
-                                                  (${pedido.status == 'EM_PREPARACAO'} ? 'bg-warning text-dark' : 'bg-secondary'))"
+                                  th:classappend="${statusNome == 'FINALIZADO'} ? 'bg-success' :
+                                                  (${statusNome == 'CANCELADO'} ? 'bg-danger' :
+                                                  (${statusNome == 'EM_PREPARACAO'} ? 'bg-warning text-dark' : 'bg-secondary'))"
                                   th:text="${pedido.status}">
                             </span>
+                            <div class="text-muted small" th:if="${statusNome == 'CANCELADO'}"
+                                 th:text="${pedido.justificativaCancelamento}"></div>
                         </td>
                         <td class="text-end pe-4"
-                            th:with="proximo=${pedido.status == 'RECEBIDO'} ? 'EM_PREPARACAO' :
-                                     ((${pedido.status == 'EM_PREPARACAO'}) ? 'PRONTO' :
-                                     ((${pedido.status == 'PRONTO'}) ? 'SAIU_PARA_ENTREGA_RETIRADO' :
-                                     ((${pedido.status == 'SAIU_PARA_ENTREGA_RETIRADO'}) ? 'FINALIZADO' : null)))">
-                            <button th:if="${proximo != null and (perfil == 'ATENDENTE' or perfil == 'GERENTE')}"
-                                    type="button" class="btn btn-sm btn-outline-primary"
-                                    th:attr="onclick=|avancarStatus('${pedido.id}', '${proximo}')|"
-                                    th:text="'Avançar para ' + ${proximo}">
-                            </button>
+                            th:with="statusNome=${pedido.status.name()},
+                                    proximo=${statusNome == 'RECEBIDO'} ? 'EM_PREPARACAO' :
+                                     ((${statusNome == 'EM_PREPARACAO'}) ? 'PRONTO' :
+                                     ((${statusNome == 'PRONTO'}) ? 'SAIU_PARA_ENTREGA_RETIRADO' :
+                                     ((${statusNome == 'SAIU_PARA_ENTREGA_RETIRADO'}) ? 'FINALIZADO' : null))),
+                                    podeCancelarOuDescontar=${statusNome == 'RECEBIDO' or statusNome == 'EM_PREPARACAO' or statusNome == 'PRONTO'}">
+                            <div class="d-flex gap-1 justify-content-end flex-wrap">
+                                <button th:if="${proximo != null and (perfil == 'ATENDENTE' or perfil == 'GERENTE')}"
+                                        type="button" class="btn btn-sm btn-outline-primary"
+                                        th:attr="onclick=|avancarStatus('${pedido.id}', '${proximo}')|"
+                                        th:text="'Avançar para ' + ${proximo}">
+                                </button>
+                                <button th:if="${podeCancelarOuDescontar and perfil == 'GERENTE'}"
+                                        type="button" class="btn btn-sm btn-outline-warning"
+                                        th:attr="onclick=|aplicarDesconto('${pedido.id}')|">
+                                    Desconto
+                                </button>
+                                <button th:if="${podeCancelarOuDescontar and perfil == 'GERENTE'}"
+                                        type="button" class="btn btn-sm btn-outline-danger"
+                                        th:attr="onclick=|cancelarPedido('${pedido.id}')|">
+                                    Cancelar
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
@@ -97,15 +113,63 @@
     </div>
 
     <script>
+        function mostrarErroStatus(mensagem) {
+            document.getElementById('erro-status-texto').textContent = mensagem;
+            document.getElementById('erro-status').style.display = 'block';
+        }
+
         async function avancarStatus(id, novoStatus) {
             const response = await fetch(`/api/pedidos/${id}/status?status=${novoStatus}`, { method: 'PUT' });
             if (response.ok) {
                 window.location.reload();
             } else {
                 const corpo = await response.json().catch(() => ({}));
-                document.getElementById('erro-status-texto').textContent =
-                    corpo.erro || 'Não foi possível atualizar o status do pedido.';
-                document.getElementById('erro-status').style.display = 'block';
+                mostrarErroStatus(corpo.erro || 'Não foi possível atualizar o status do pedido.');
+            }
+        }
+
+        async function cancelarPedido(id) {
+            const justificativa = prompt('Justificativa do cancelamento (obrigatória):');
+            if (justificativa === null) return;
+            if (!justificativa.trim()) {
+                mostrarErroStatus('É obrigatório informar a justificativa do cancelamento.');
+                return;
+            }
+
+            const response = await fetch(`/api/pedidos/${id}/cancelar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ justificativa })
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                const corpo = await response.json().catch(() => ({}));
+                mostrarErroStatus(corpo.erro || 'Não foi possível cancelar o pedido.');
+            }
+        }
+
+        async function aplicarDesconto(id) {
+            const percentualTexto = prompt('Percentual de desconto (0 a 20):');
+            if (percentualTexto === null) return;
+            const percentual = parseFloat(percentualTexto);
+            if (isNaN(percentual) || percentual < 0 || percentual > 20) {
+                mostrarErroStatus('O desconto deve ser um percentual entre 0 e 20.');
+                return;
+            }
+
+            const response = await fetch(`/api/pedidos/${id}/desconto`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ percentual })
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                const corpo = await response.json().catch(() => ({}));
+                mostrarErroStatus(corpo.erro || 'Não foi possível aplicar o desconto.');
             }
         }
     </script>

@@ -1,5 +1,7 @@
 package com.umc.pediupatrao.service;
 
+import com.umc.pediupatrao.dto.CancelamentoRequest;
+import com.umc.pediupatrao.dto.DescontoRequest;
 import com.umc.pediupatrao.dto.ItemPedidoRequest;
 import com.umc.pediupatrao.dto.NovoPedidoRequest;
 import com.umc.pediupatrao.entity.ItemPedido;
@@ -13,6 +15,7 @@ import com.umc.pediupatrao.repository.ProdutoRepository;
 import com.umc.pediupatrao.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -134,6 +137,55 @@ public class PedidoService {
         }
 
         return pedidoRepository.save(pedido);
+    }
+
+    // RF04 - Cancelamento: exclusivo do GERENTE (garantido pelo @PreAuthorize no
+    // controller), permitido apenas antes da saída para entrega/retirada, exige
+    // justificativa e preserva o histórico do pedido (nada é apagado).
+    public Pedido cancelarPedido(String id, CancelamentoRequest request, String usernameResponsavel) {
+        if (request == null || !StringUtils.hasText(request.getJustificativa())) {
+            throw new IllegalArgumentException("É obrigatório informar a justificativa do cancelamento.");
+        }
+
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido não encontrado."));
+
+        validarPodeSerAlterado(pedido);
+
+        pedido.setStatus(StatusPedido.CANCELADO);
+        pedido.setJustificativaCancelamento(request.getJustificativa());
+
+        // TODO (RF05): registrar evento de auditoria (cancelamento) com usuario/perfil/data/justificativa
+        return pedidoRepository.save(pedido);
+    }
+
+    // RF04 - Desconto: exclusivo do GERENTE, percentual limitado a 20%,
+    // permitido apenas antes da saída para entrega/retirada.
+    public Pedido aplicarDesconto(String id, DescontoRequest request, String usernameResponsavel) {
+        if (request == null || request.getPercentual() < 0 || request.getPercentual() > 20) {
+            throw new IllegalArgumentException("O desconto deve ser um percentual entre 0 e 20.");
+        }
+
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido não encontrado."));
+
+        validarPodeSerAlterado(pedido);
+
+        double valorBruto = pedido.getItens().stream().mapToDouble(ItemPedido::getSubtotal).sum();
+        pedido.setDesconto(request.getPercentual());
+        pedido.setValorTotal(valorBruto * (1 - request.getPercentual() / 100));
+
+        // TODO (RF05): registrar evento de auditoria (desconto) com usuario/perfil/data/valores anterior e novo
+        return pedidoRepository.save(pedido);
+    }
+
+    private void validarPodeSerAlterado(Pedido pedido) {
+        if (pedido.getStatus() == StatusPedido.SAIU_PARA_ENTREGA_RETIRADO
+                || pedido.getStatus() == StatusPedido.FINALIZADO
+                || pedido.getStatus() == StatusPedido.CANCELADO) {
+            throw new IllegalArgumentException(
+                    "Pedido " + pedido.getStatus() + " não admite cancelamento ou desconto.");
+        }
     }
 
 }

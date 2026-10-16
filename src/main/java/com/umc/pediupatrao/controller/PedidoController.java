@@ -1,5 +1,7 @@
 package com.umc.pediupatrao.controller;
 
+import com.umc.pediupatrao.dto.CancelamentoRequest;
+import com.umc.pediupatrao.dto.DescontoRequest;
 import com.umc.pediupatrao.dto.NovoPedidoRequest;
 import com.umc.pediupatrao.entity.Pedido;
 import com.umc.pediupatrao.entity.StatusPedido;
@@ -38,6 +40,22 @@ public class PedidoController {
     public Pedido atualizarStatus(@PathVariable String id, @RequestParam StatusPedido status,
             Authentication authentication) {
         return pedidoService.atualizarStatus(id, status, authentication.getName());
+    }
+
+    // Cancelamento: exclusivo do GERENTE, mesmo comparado ao ADMIN
+    @PreAuthorize("hasRole('GERENTE')")
+    @PostMapping("/{id}/cancelar")
+    public Pedido cancelarPedido(@PathVariable String id, @RequestBody CancelamentoRequest request,
+            Authentication authentication) {
+        return pedidoService.cancelarPedido(id, request, authentication.getName());
+    }
+
+    // Desconto: exclusivo do GERENTE, mesmo comparado ao ADMIN
+    @PreAuthorize("hasRole('GERENTE')")
+    @PutMapping("/{id}/desconto")
+    public Pedido aplicarDesconto(@PathVariable String id, @RequestBody DescontoRequest request,
+            Authentication authentication) {
+        return pedidoService.aplicarDesconto(id, request, authentication.getName());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
