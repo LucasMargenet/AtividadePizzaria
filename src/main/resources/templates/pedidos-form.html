@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Novo Pedido</title>
+</head>
+<body>
+
+<div th:fragment="content">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/pedidos" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <h2 class="fw-bold mb-0">Novo Pedido</h2>
+    </div>
+
+    <div class="alert alert-danger" id="erro-pedido" style="display:none;"></div>
+
+    <div class="card shadow-sm" style="max-width: 720px;">
+        <div class="card-body p-4">
+
+            <div class="mb-3">
+                <label for="cliente" class="form-label fw-medium">
+                    <i class="bi bi-person me-1"></i>Cliente
+                </label>
+                <select id="cliente" class="form-select" required>
+                    <option value="" disabled selected>Selecione um cliente</option>
+                    <option th:each="cliente : ${clientes}" th:value="${cliente.id}" th:text="${cliente.nome}"></option>
+                </select>
+            </div>
+
+            <label class="form-label fw-medium">
+                <i class="bi bi-bag me-1"></i>Itens do pedido
+            </label>
+            <div id="itens-container"></div>
+
+            <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="btn-add-item">
+                <i class="bi bi-plus-lg me-1"></i>Adicionar item
+            </button>
+
+            <div class="d-flex justify-content-end fw-bold fs-5 mb-3">
+                Total estimado: <span class="ms-2" id="total-estimado">R$ 0,00</span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-primary" id="btn-salvar">
+                    <i class="bi bi-check-lg me-1"></i>Registrar Pedido
+                </button>
+                <a href="/pedidos" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Template de uma linha de item (não renderizado, só clonado via JS) -->
+    <table style="display:none;">
+        <tbody>
+        <tr id="linha-item-template">
+            <td>
+                <select class="form-select produto-select">
+                    <option value="" disabled selected>Selecione um produto</option>
+                    <option th:each="produto : ${produtos}"
+                            th:value="${produto.id}"
+                            th:text="${produto.nome} + ' — R$ ' + ${#numbers.formatDecimal(produto.preco, 1, 2)}"
+                            th:attr="data-preco=${produto.preco}"></option>
+                </select>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <script th:inline="javascript">
+        const itensContainer = document.getElementById('itens-container');
+        const linhaTemplate = document.getElementById('linha-item-template').querySelector('.produto-select').outerHTML;
+
+        function criarLinhaItem() {
+            const linha = document.createElement('div');
+            linha.className = 'row g-2 align-items-center mb-2 linha-item';
+            linha.innerHTML = `
+                <div class="col-6">${linhaTemplate}</div>
+                <div class="col-3">
+                    <input type="number" class="form-control quantidade-input" min="1" value="1" placeholder="Qtd.">
+                </div>
+                <div class="col-2 text-muted small subtotal-linha">R$ 0,00</div>
+                <div class="col-1">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remover-item">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+            itensContainer.appendChild(linha);
+            atualizarTotal();
+        }
+
+        function formatarMoeda(valor) {
+            return 'R$ ' + valor.toFixed(2).replace('.', ',');
+        }
+
+        function atualizarTotal() {
+            let total = 0;
+            document.querySelectorAll('.linha-item').forEach(linha => {
+                const select = linha.querySelector('.produto-select');
+                const opcao = select.options[select.selectedIndex];
+                const preco = opcao && opcao.value ? parseFloat(opcao.getAttribute('data-preco')) : 0;
+                const quantidade = parseInt(linha.querySelector('.quantidade-input').value, 10) || 0;
+                const subtotal = preco * quantidade;
+                linha.querySelector('.subtotal-linha').textContent = formatarMoeda(subtotal);
+                total += subtotal;
+            });
+            document.getElementById('total-estimado').textContent = formatarMoeda(total);
+        }
+
+        itensContainer.addEventListener('change', atualizarTotal);
+        itensContainer.addEventListener('input', atualizarTotal);
+        itensContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-remover-item');
+            if (btn) {
+                btn.closest('.linha-item').remove();
+                atualizarTotal();
+            }
+        });
+
+        document.getElementById('btn-add-item').addEventListener('click', criarLinhaItem);
+        criarLinhaItem();
+
+        function mostrarErro(mensagem) {
+            const el = document.getElementById('erro-pedido');
+            el.textContent = mensagem;
+            el.style.display = 'block';
+        }
+
+        document.getElementById('btn-salvar').addEventListener('click', async () => {
+            const clienteId = document.getElementById('cliente').value;
+            if (!clienteId) {
+                mostrarErro('Selecione um cliente.');
+                return;
+            }
+
+            const itens = [];
+            document.querySelectorAll('.linha-item').forEach(linha => {
+                const produtoId = linha.querySelector('.produto-select').value;
+                const quantidade = parseInt(linha.querySelector('.quantidade-input').value, 10);
+                if (produtoId && quantidade > 0) {
+                    itens.push({ produtoId, quantidade });
+                }
+            });
+
+            if (itens.length === 0) {
+                mostrarErro('Adicione ao menos um item válido ao pedido.');
+                return;
+            }
+
+            const response = await fetch('/api/pedidos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clienteId, itens })
+            });
+
+            if (response.ok) {
+                window.location.href = '/pedidos';
+            } else {
+                const corpo = await response.json().catch(() => ({}));
+                mostrarErro(corpo.erro || 'Não foi possível registrar o pedido.');
+            }
+        });
+    </script>
+
+</div>
+
+</body>
+</html>

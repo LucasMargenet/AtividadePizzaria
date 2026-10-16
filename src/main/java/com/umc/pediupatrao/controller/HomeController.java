@@ -13,6 +13,7 @@ import com.umc.pediupatrao.service.UsuarioService;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -120,12 +121,29 @@ public class HomeController {
     // PEDIDOS
     // ========================
     @GetMapping("/pedidos")
-    public String pedidos(Model model) {
+    public String pedidos(Model model, Authentication authentication) {
         List<Pedido> pedidos = pedidoService.listarPedidos();
         model.addAttribute("pedidos", pedidos);
+        model.addAttribute("perfil", perfilAtual(authentication));
         model.addAttribute("content", "pedidos :: content");
         log.info("Carregando fragmento: pedidos :: content");
         return "layout";
+    }
+
+    @PreAuthorize("hasAnyRole('ATENDENTE', 'GERENTE')")
+    @GetMapping("/pedidos/novo")
+    public String novoPedidoForm(Model model) {
+        model.addAttribute("clientes", clienteService.listarClientes());
+        model.addAttribute("produtos", produtoService.listarProdutos());
+        model.addAttribute("content", "pedidos-form :: content");
+        return "layout";
+    }
+
+    private String perfilAtual(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .findFirst()
+                .map(a -> a.getAuthority().replace("ROLE_", ""))
+                .orElse("");
     }
 
     // ========================

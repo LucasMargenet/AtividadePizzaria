@@ -12,7 +12,7 @@ public class Pedido {
     private String id;
     private String clienteId;
     private List<ItemPedido> itens = new ArrayList<>();
-    private String status;
+    private StatusPedido status;
 
     // Desconto percentual (0-20), aplicado exclusivamente pelo GERENTE (RF04)
     private double desconto;
@@ -22,6 +22,14 @@ public class Pedido {
     private String responsavelRegistroId;
     private String responsavelRegistroUsername;
     private LocalDateTime dataHoraEntrada;
+
+    // Preenchidos somente na transição para SAIU_PARA_ENTREGA_RETIRADO
+    private String responsavelSaidaId;
+    private String responsavelSaidaUsername;
+    private LocalDateTime dataHoraSaida;
+
+    // Preenchidos somente no cancelamento (RF04)
+    private String justificativaCancelamento;
 
     public String getId() {
         return id;
@@ -47,11 +55,11 @@ public class Pedido {
         this.itens = itens;
     }
 
-    public String getStatus() {
+    public StatusPedido getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(StatusPedido status) {
         this.status = status;
     }
 
@@ -93,5 +101,37 @@ public class Pedido {
 
     public void setDataHoraEntrada(LocalDateTime dataHoraEntrada) {
         this.dataHoraEntrada = dataHoraEntrada;
+    }
+
+    public String getResponsavelSaidaId() {
+        return responsavelSaidaId;
+    }
+
+    public void setResponsavelSaidaId(String responsavelSaidaId) {
+        this.responsavelSaidaId = responsavelSaidaId;
+    }
+
+    public String getResponsavelSaidaUsername() {
+        return responsavelSaidaUsername;
+    }
+
+    public void setResponsavelSaidaUsername(String responsavelSaidaUsername) {
+        this.responsavelSaidaUsername = responsavelSaidaUsername;
+    }
+
+    public LocalDateTime getDataHoraSaida() {
+        return dataHoraSaida;
+    }
+
+    public void setDataHoraSaida(LocalDateTime dataHoraSaida) {
+        this.dataHoraSaida = dataHoraSaida;
+    }
+
+    public String getJustificativaCancelamento() {
+        return justificativaCancelamento;
+    }
+
+    public void setJustificativaCancelamento(String justificativaCancelamento) {
+        this.justificativaCancelamento = justificativaCancelamento;
     }
 }
