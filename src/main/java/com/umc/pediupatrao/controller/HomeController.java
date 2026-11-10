@@ -230,6 +230,16 @@ public class HomeController {
     }
 
     // ========================
+    // DASHBOARD (somente ADMIN/GERENTE)
+    // ========================
+    @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
+    @GetMapping("/dashboard")
+    public String dashboard(Model model) {
+        model.addAttribute("content", "dashboard :: content");
+        return "layout";
+    }
+
+    // ========================
     // OUTRAS ROTAS
     // ========================
     @GetMapping("/configuracoes")

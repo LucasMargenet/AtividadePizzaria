@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+
+<div th:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-graph-up me-2 text-primary"></i>Dashboard
+        </h2>
+
+        <div class="d-flex align-items-end gap-2 flex-wrap">
+            <div>
+                <label class="form-label small mb-1">De</label>
+                <input type="date" id="filtro-inicio" class="form-control form-control-sm">
+            </div>
+            <div>
+                <label class="form-label small mb-1">Até</label>
+                <input type="date" id="filtro-fim" class="form-control form-control-sm">
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-atualizar">
+                <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
+            </button>
+        </div>
+    </div>
+
+    <div class="alert alert-danger" id="erro-dashboard" style="display:none;"></div>
+    <div class="text-center text-muted py-5" id="carregando-dashboard">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="mt-2">Carregando indicadores...</div>
+    </div>
+
+    <div id="conteudo-dashboard" style="display:none;">
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Total de pedidos</div>
+                        <div class="fs-3 fw-bold" id="ind-total-pedidos">—</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Faturamento</div>
+                        <div class="fs-3 fw-bold text-success" id="ind-faturamento">—</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Ticket médio</div>
+                        <div class="fs-3 fw-bold" id="ind-ticket-medio">—</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Cancelados</div>
+                        <div class="fs-3 fw-bold text-danger" id="ind-cancelados">—</div>
+                        <div class="text-muted small" id="ind-taxa-cancelamento"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-lg-8">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">Vendas por dia</h6>
+                        <canvas id="grafico-vendas" height="110"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">Situação dos pedidos</h6>
+                        <canvas id="grafico-status" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3">Produtos mais vendidos</h6>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Produto</th>
+                            <th>Quantidade vendida</th>
+                            <th>Faturamento</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-produtos"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        const API_BASE = '/api/dashboard';
+        let graficoVendas = null;
+        let graficoStatus = null;
+
+        const CORES_STATUS = {
+            RECEBIDO: '#6c757d',
+            EM_PREPARACAO: '#ffc107',
+            PRONTO: '#0dcaf0',
+            SAIU_PARA_ENTREGA_RETIRADO: '#0d6efd',
+            FINALIZADO: '#198754',
+            CANCELADO: '#dc3545'
+        };
+
+        function formatarMoeda(valor) {
+            return 'R$ ' + Number(valor || 0).toFixed(2).replace('.', ',');
+        }
+
+        function montarQueryString() {
+            const inicio = document.getElementById('filtro-inicio').value;
+            const fim = document.getElementById('filtro-fim').value;
+            const params = new URLSearchParams();
+            if (inicio) params.set('inicio', inicio);
+            if (fim) params.set('fim', fim);
+            return params.toString();
+        }
+
+        async function buscarJson(caminho) {
+            const response = await fetch(`${API_BASE}${caminho}`);
+            if (!response.ok) {
+                const corpo = await response.json().catch(() => ({}));
+                throw new Error(corpo.erro || `Falha ao consultar ${caminho} (HTTP ${response.status})`);
+            }
+            return response.json();
+        }
+
+        function renderizarIndicadores(dados) {
+            document.getElementById('ind-total-pedidos').textContent = dados.totalPedidos;
+            document.getElementById('ind-faturamento').textContent = formatarMoeda(dados.faturamentoTotal);
+            document.getElementById('ind-ticket-medio').textContent = formatarMoeda(dados.ticketMedio);
+            document.getElementById('ind-cancelados').textContent = dados.pedidosCancelados;
+            document.getElementById('ind-taxa-cancelamento').textContent =
+                dados.taxaCancelamento.toFixed(1) + '% de cancelamento';
+        }
+
+        function renderizarGraficoVendas(dados) {
+            const labels = dados.map(d => d.data.split('-').reverse().join('/'));
+            const faturamentos = dados.map(d => d.faturamento);
+
+            if (graficoVendas) graficoVendas.destroy();
+            graficoVendas = new Chart(document.getElementById('grafico-vendas'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Faturamento (R$)',
+                        data: faturamentos,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13,110,253,0.15)',
+                        tension: 0.25,
+                        fill: true
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function renderizarGraficoStatus(dados) {
+            const labels = dados.map(d => d.status);
+            const quantidades = dados.map(d => d.quantidade);
+            const cores = dados.map(d => CORES_STATUS[d.status] || '#adb5bd');
+
+            if (graficoStatus) graficoStatus.destroy();
+            graficoStatus = new Chart(document.getElementById('grafico-status'), {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{ data: quantidades, backgroundColor: cores }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } }
+            });
+        }
+
+        function renderizarProdutos(dados) {
+            const corpo = document.getElementById('tabela-produtos');
+            corpo.innerHTML = '';
+
+            if (dados.length === 0) {
+                corpo.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">Nenhuma venda no período.</td></tr>`;
+                return;
+            }
+
+            dados.forEach((produto, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${produto.nomeProduto}</td>
+                    <td>${produto.quantidadeVendida}</td>
+                    <td>${formatarMoeda(produto.faturamento)}</td>
+                `;
+                corpo.appendChild(row);
+            });
+        }
+
+        async function carregarDashboard() {
+            const carregando = document.getElementById('carregando-dashboard');
+            const conteudo = document.getElementById('conteudo-dashboard');
+            const erro = document.getElementById('erro-dashboard');
+
+            carregando.style.display = 'block';
+            conteudo.style.display = 'none';
+            erro.style.display = 'none';
+
+            try {
+                const qs = montarQueryString();
+                const [indicadores, vendas, status, produtos] = await Promise.all([
+                    buscarJson(`/indicadores?${qs}`),
+                    buscarJson(`/vendas-por-periodo?${qs}`),
+                    buscarJson(`/status-pedidos?${qs}`),
+                    buscarJson(`/produtos-mais-vendidos?${qs}&limite=10`)
+                ]);
+
+                renderizarIndicadores(indicadores);
+                renderizarGraficoVendas(vendas);
+                renderizarGraficoStatus(status);
+                renderizarProdutos(produtos);
+
+                conteudo.style.display = 'block';
+            } catch (e) {
+                erro.textContent = 'Não foi possível carregar o dashboard: ' + e.message;
+                erro.style.display = 'block';
+            } finally {
+                carregando.style.display = 'none';
+            }
+        }
+
+        document.getElementById('btn-atualizar').addEventListener('click', carregarDashboard);
+        carregarDashboard();
+    </script>
+
+</div>
+
+</body>
+</html>
