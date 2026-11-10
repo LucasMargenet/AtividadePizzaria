@@ -80,3 +80,11 @@ Na primeira execução, três usuários são criados automaticamente (um para ca
 ## Vídeo de demonstração
 
 _(link a adicionar)_
+
+## Dashboard Administrativo + API (branch `feature/dashboard-api`)
+
+Atividade separada, construída em cima deste mesmo projeto: um painel administrativo com indicadores de vendas, gráficos, situação dos pedidos e ranking de produtos, consumindo uma API REST própria.
+
+- Documentação completa (requisitos, endpoints, decisões de projeto, evidências de teste): [`docs/dashboard-admin.md`](docs/dashboard-admin.md)
+- Documentação interativa da API (Swagger): `http://localhost:8080/swagger-ui/index.html`
+- Vídeo de demonstração: [assistir](https://github.com/LucasMargenet/AtividadePizzaria/releases/download/dashboard-api-v1/PediuPatrao.Video.mp4) · [página da release](https://github.com/LucasMargenet/AtividadePizzaria/releases/tag/dashboard-api-v1)

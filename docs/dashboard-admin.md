@@ -2,6 +2,8 @@
 
 Documento da atividade "Dashboard Administrativo + API", construída em cima do sistema PediuPatrão já existente (branch `feature/dashboard-api`).
 
+**Vídeo de demonstração (até 3 min):** [assistir](https://github.com/LucasMargenet/AtividadePizzaria/releases/download/dashboard-api-v1/PediuPatrao.Video.mp4) · [página da release](https://github.com/LucasMargenet/AtividadePizzaria/releases/tag/dashboard-api-v1)
+
 ## 1. Visão geral
 
 O responsável pelo estabelecimento (perfis `ADMIN` e `GERENTE`) passa a ter um painel com indicadores de vendas, gráficos, situação dos pedidos e ranking de produtos, consumindo uma API REST própria (`/api/dashboard/**`) construída sobre os dados de pedidos já existentes no sistema — nenhuma coleção nova foi criada no MongoDB.
