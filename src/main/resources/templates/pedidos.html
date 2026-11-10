@@ -65,7 +65,11 @@
                                 <span th:text="${item.quantidade} + 'x ' + ${item.nomeProduto}"></span><span th:if="${!stat.last}">, </span>
                             </span>
                         </td>
-                        <td th:text="${'R$ ' + #numbers.formatDecimal(pedido.valorTotal, 1, 2)}"></td>
+                        <td>
+                            <span th:text="${'R$ ' + #numbers.formatDecimal(pedido.valorTotal, 1, 2)}"></span>
+                            <span th:if="${pedido.desconto > 0}" class="badge bg-info text-dark ms-1"
+                                  th:text="${#numbers.formatDecimal(pedido.desconto, 1, 0) + '% off'}"></span>
+                        </td>
                         <td th:text="${pedido.responsavelRegistroUsername}"></td>
                         <td th:text="${pedido.dataHoraEntrada != null} ? ${#temporals.format(pedido.dataHoraEntrada, 'dd/MM/yyyy HH:mm')} : '-'"></td>
                         <td th:with="statusNome=${pedido.status.name()}">

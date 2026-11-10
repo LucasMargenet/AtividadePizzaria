@@ -7,7 +7,9 @@
     <body>
         <div th:fragment="sidebar">
             <div id="sidebar">
-                <h4 class="text-center py-3">Pediu Patrão</h4>
+                <div class="text-center py-3">
+                    <img th:src="@{/images/logo.svg}" alt="Pediu Patrão - Pizzaria" width="70" height="auto">
+                </div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
                         <a class="nav-link" th:href="@{/}" aria-current="page">

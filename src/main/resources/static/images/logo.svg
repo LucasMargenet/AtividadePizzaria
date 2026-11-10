@@ -1,38 +1,61 @@
-<svg width="100%" viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220" width="240" height="220">
+  <defs>
+    <radialGradient id="crust" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#f3c46b"/>
+      <stop offset="75%" stop-color="#e3a84a"/>
+      <stop offset="100%" stop-color="#c4812f"/>
+    </radialGradient>
+    <radialGradient id="cheese" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#ffd966"/>
+      <stop offset="100%" stop-color="#f6b93b"/>
+    </radialGradient>
+  </defs>
 
-  <rect x="140" y="15" width="400" height="170" rx="16" fill="#1e2330"/>
+  <!-- Pizza -->
+  <g>
+    <circle cx="120" cy="88" r="72" fill="url(#crust)"/>
+    <circle cx="120" cy="88" r="60" fill="url(#cheese)"/>
 
-  <!-- Prato -->
-  <ellipse cx="340" cy="138" rx="65" ry="9" fill="#2a3245"/>
-  <ellipse cx="340" cy="133" rx="65" ry="9" fill="#34405a"/>
+    <!-- Fatias -->
+    <g stroke="#e3a84a" stroke-width="2.5" opacity="0.85">
+      <line x1="120" y1="88" x2="120" y2="28"/>
+      <line x1="120" y1="88" x2="172" y2="60"/>
+      <line x1="120" y1="88" x2="172" y2="116"/>
+      <line x1="120" y1="88" x2="120" y2="148"/>
+      <line x1="120" y1="88" x2="68" y2="116"/>
+      <line x1="120" y1="88" x2="68" y2="60"/>
+    </g>
 
-  <!-- Cloche -->
-  <path d="M278 133 Q280 88 340 80 Q400 88 402 133 Z" fill="#c0392b"/>
-  <rect x="278" y="131" width="124" height="7" rx="3" fill="#a93226"/>
+    <!-- Pepperoni -->
+    <g fill="#c0392b">
+      <circle cx="120" cy="55" r="9"/>
+      <circle cx="152" cy="75" r="9"/>
+      <circle cx="152" cy="105" r="9"/>
+      <circle cx="120" cy="122" r="9"/>
+      <circle cx="88" cy="105" r="9"/>
+      <circle cx="88" cy="75" r="9"/>
+      <circle cx="120" cy="88" r="9"/>
+    </g>
+    <g fill="#e0564a">
+      <circle cx="117" cy="52" r="2.5"/>
+      <circle cx="149" cy="72" r="2.5"/>
+      <circle cx="149" cy="102" r="2.5"/>
+      <circle cx="117" cy="119" r="2.5"/>
+      <circle cx="85" cy="102" r="2.5"/>
+      <circle cx="85" cy="72" r="2.5"/>
+    </g>
 
-  <!-- Brilho -->
-  <path d="M295 118 Q305 98 326 90" stroke="rgba(255,255,255,0.12)" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <!-- Manjericão -->
+    <g fill="#4a7c3f">
+      <ellipse cx="103" cy="68" rx="6" ry="3.5" transform="rotate(-20 103 68)"/>
+      <ellipse cx="137" cy="100" rx="6" ry="3.5" transform="rotate(25 137 100)"/>
+      <ellipse cx="100" cy="108" rx="6" ry="3.5" transform="rotate(10 100 108)"/>
+    </g>
+  </g>
 
-  <!-- Alça -->
-  <rect x="332" y="71" width="16" height="12" rx="5" fill="#e74c3c"/>
-  <circle cx="340" cy="71" r="6" fill="#c0392b"/>
-  <circle cx="340" cy="71" r="3.5" fill="#e74c3c"/>
-
-  <!-- Garfo -->
-  <line x1="218" y1="80" x2="218" y2="140" stroke="#8a9bb5" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="212" y1="80" x2="212" y2="96" stroke="#8a9bb5" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="218" y1="80" x2="218" y2="96" stroke="#8a9bb5" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="224" y1="80" x2="224" y2="96" stroke="#8a9bb5" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M212 96 Q218 104 224 96" fill="none" stroke="#8a9bb5" stroke-width="1.8"/>
-
-  <!-- Faca -->
-  <line x1="462" y1="80" x2="462" y2="140" stroke="#8a9bb5" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M462 80 Q472 92 469 110 L462 112 Z" fill="#8a9bb5"/>
-
-  <!-- Texto -->
-  <text x="340" y="172" text-anchor="middle" font-family="Georgia, serif" font-size="24" font-weight="700" fill="#ff6b35">Pediu<tspan fill="#ffffff">Patrão</tspan></text>
-
-  <!-- Tagline -->
-  <text x="340" y="188" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#8a9bb5" letter-spacing="2.5">SISTEMA DE PEDIDOS</text>
-
+  <!-- Nome -->
+  <text x="120" y="182" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif"
+        font-size="26" font-weight="800" fill="#b23a1e">Pediu Patrão</text>
+  <text x="120" y="204" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif"
+        font-size="13" letter-spacing="3" fill="#8a6d3b">PIZZARIA</text>
 </svg>

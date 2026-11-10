@@ -70,6 +70,7 @@ Na primeira execução, três usuários são criados automaticamente (um para ca
 - Telas novas: criação de pedido (`/pedidos/novo` — não existia antes), avanço de status, desconto/cancelamento e consulta de auditoria (`/auditoria`).
 - `produtos/lista.html`: corrigido um bug pré-existente da base (a página não carregava — fragmento Thymeleaf inexistente) e o CRUD de produtos, que não funcionava, foi reescrito.
 - Credenciais do MongoDB removidas do código-fonte; banco local via Docker Compose.
+- Logo substituída: a imagem anterior era um emoji genérico; agora é uma ilustração própria de pizza (SVG) com a marca do sistema.
 
 ## Débitos técnicos conhecidos
 
